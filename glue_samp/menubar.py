@@ -1,4 +1,4 @@
-from qtpy.QtCore import QTimer, QThread, QObject, Signal
+from qtpy.QtCore import QObject, Signal
 
 from glue.config import menubar_plugin
 from glue.logger import logger
@@ -7,15 +7,13 @@ from glue.core.data_factories.astropy_table import (astropy_tabular_data_votable
 
 from astropy.samp import SAMPIntegratedClient
 
-# from .samp_widget import SAMPWidget
-
 # http://wiki.ivoa.net/twiki/bin/view/IVOA/SampMTypes#table_load
 
 
 class GlueSAMPReceiver(QObject):
 
-    call_received = Signal(str, str, str, str, dict, dict)
-    notification_received = Signal(str, str, str, str, dict, dict)
+    call_received = Signal(object, object, object, object, object, object)
+    notification_received = Signal(object, object, object, object, object, object)
 
     def __init__(self, data_collection):
 
@@ -27,18 +25,18 @@ class GlueSAMPReceiver(QObject):
         self.client.connect()
 
         self.client.bind_receive_call("*", self._receive_call)
-        # self.client.bind_receive_notification("*", self._receive_notification)
+        self.client.bind_receive_notification("*", self._receive_notification)
 
         self.call_received.connect(self.receive_call)
-        # self.notification_received.connect(self.receive_notification)
+        self.notification_received.connect(self.receive_notification)
 
     def _receive_call(self, private_key, sender_id, msg_id, mtype, params, extra):
-        logger.info('SAMP: received call - mtype={0} params={1} extra={2}'.format(mtype, params, extra))
+        logger.info('SAMP: received call - sender_id={0} msg_id={1} mtype={2} params={3} extra={4}'.format(sender_id, msg_id, mtype, params, extra))
         self.call_received.emit(private_key, sender_id, msg_id, mtype, params, extra)
         self.client.reply(msg_id, {"samp.status": "samp.ok", "samp.result": {}})
 
     def receive_call(self, private_key, sender_id, msg_id, mtype, params, extra):
-        logger.info('SAMP: received call - mtype={0} params={1} extra={2}'.format(mtype, params, extra))
+        logger.info('SAMP: received call [main] - sender_id={0} msg_id={1} mtype={2} params={3} extra={4}'.format(sender_id, msg_id, mtype, params, extra))
 
         if mtype == 'table.load.votable':
 
@@ -70,11 +68,11 @@ class GlueSAMPReceiver(QObject):
             return False
 
     def _receive_notification(self, private_key, sender_id, msg_id, mtype, params, extra):
-        logger.info('SAMP: received notification - mtype={0} params={1} extra={2}'.format(mtype, params, extra))
+        logger.info('SAMP: received notification - sender_id={0} msg_id={1} mtype={2} params={3} extra={4}'.format(sender_id, msg_id, mtype, params, extra))
         self.notification_received.emit(private_key, sender_id, msg_id, mtype, params, extra)
 
     def receive_notification(self, private_key, sender_id, msg_id, mtype, params, extra):
-        logger.info('SAMP: received notification - mtype={0} params={1} extra={2}'.format(mtype, params, extra))
+        logger.info('SAMP: received notification [main] - sender_id={0} msg_id={1} mtype={2} params={3} extra={4}'.format(sender_id, msg_id, mtype, params, extra))
 
 
 receiver = None
