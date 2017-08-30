@@ -1,0 +1,86 @@
+from qtpy.QtCore import QTimer, QThread, QObject, Signal
+
+from glue.config import menubar_plugin
+from glue.logger import logger
+from glue.core.data_factories.astropy_table import (astropy_tabular_data_votable,
+                                                    astropy_tabular_data_fits)
+
+from astropy.samp import SAMPIntegratedClient
+
+# from .samp_widget import SAMPWidget
+
+# http://wiki.ivoa.net/twiki/bin/view/IVOA/SampMTypes#table_load
+
+
+class GlueSAMPReceiver(QObject):
+
+    call_received = Signal(str, str, str, str, dict, dict)
+    notification_received = Signal(str, str, str, str, dict, dict)
+
+    def __init__(self, data_collection):
+
+        super(GlueSAMPReceiver, self).__init__()
+
+        self.data_collection = data_collection
+
+        self.client = SAMPIntegratedClient()
+        self.client.connect()
+
+        self.client.bind_receive_call("*", self._receive_call)
+        # self.client.bind_receive_notification("*", self._receive_notification)
+
+        self.call_received.connect(self.receive_call)
+        # self.notification_received.connect(self.receive_notification)
+
+    def _receive_call(self, private_key, sender_id, msg_id, mtype, params, extra):
+        logger.info('SAMP: received call - mtype={0} params={1} extra={2}'.format(mtype, params, extra))
+        self.call_received.emit(private_key, sender_id, msg_id, mtype, params, extra)
+        self.client.reply(msg_id, {"samp.status": "samp.ok", "samp.result": {}})
+
+    def receive_call(self, private_key, sender_id, msg_id, mtype, params, extra):
+        logger.info('SAMP: received call - mtype={0} params={1} extra={2}'.format(mtype, params, extra))
+
+        if mtype == 'table.load.votable':
+
+            if self.table_id_exists(params['table-id']):
+                return
+
+            data = astropy_tabular_data_votable(params['url'])
+            data.label = params['name']
+            data.meta['samp-table-id'] = params['table-id']
+
+            self.data_collection.append(data)
+
+        elif mtype == 'table.load.fits':
+
+            if self.table_id_exists(params['table-id']):
+                return
+
+            data = astropy_tabular_data_fits(params['url'])
+            data.label = params['name']
+            data.meta['samp-table-id'] = params['table-id']
+
+            self.data_collection.append(data)
+
+    def table_id_exists(self, table_id):
+        for data in self.data_collection:
+            if data.meta['samp-table-id'] == table_id:
+                return True
+        else:
+            return False
+
+    def _receive_notification(self, private_key, sender_id, msg_id, mtype, params, extra):
+        logger.info('SAMP: received notification - mtype={0} params={1} extra={2}'.format(mtype, params, extra))
+        self.notification_received.emit(private_key, sender_id, msg_id, mtype, params, extra)
+
+    def receive_notification(self, private_key, sender_id, msg_id, mtype, params, extra):
+        logger.info('SAMP: received notification - mtype={0} params={1} extra={2}'.format(mtype, params, extra))
+
+
+receiver = None
+
+
+@menubar_plugin("Open SAMP plugin")
+def samp_plugin(session, data_collection):
+    global receiver
+    receiver = GlueSAMPReceiver(data_collection)

@@ -17,7 +17,7 @@ with open('glue_samp/version.py') as infile:
 
 setup(name='glue-samp',
       version=__version__,
-      description='A SAMP plugin for glue'
+      description='A SAMP plugin for glue',
       long_description=LONG_DESCRIPTION,
       url="https://github.com/glue-viz/glue-samp",
       author='Thomas Robitaille',
