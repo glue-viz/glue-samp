@@ -4,6 +4,8 @@ from glue.config import menubar_plugin
 from glue.logger import logger
 from glue.core.data_factories.astropy_table import (astropy_tabular_data_votable,
                                                     astropy_tabular_data_fits)
+from glue.core.edit_subset_mode import EditSubsetMode
+from glue.core.subset import ElementSubsetState
 
 from astropy.samp import SAMPIntegratedClient
 
@@ -67,12 +69,29 @@ class GlueSAMPReceiver(QObject):
         else:
             return False
 
+    def data_from_table_id(self, table_id):
+        for data in self.data_collection:
+            if data.meta['samp-table-id'] == table_id:
+                return data
+        else:
+            raise Exception("Table {0} not found".format(table_id))
+
     def _receive_notification(self, private_key, sender_id, msg_id, mtype, params, extra):
         logger.info('SAMP: received notification - sender_id={0} msg_id={1} mtype={2} params={3} extra={4}'.format(sender_id, msg_id, mtype, params, extra))
         self.notification_received.emit(private_key, sender_id, msg_id, mtype, params, extra)
 
     def receive_notification(self, private_key, sender_id, msg_id, mtype, params, extra):
         logger.info('SAMP: received notification [main] - sender_id={0} msg_id={1} mtype={2} params={3} extra={4}'.format(sender_id, msg_id, mtype, params, extra))
+
+        if mtype == 'table.highlight.row':
+
+            data = self.data_from_table_id(params['table-id'])
+            len(self.data_collection.subset_groups)
+
+            subset_state = ElementSubsetState(indices=[params['row']], data=data)
+
+            mode = EditSubsetMode()
+            mode.update(self.data_collection, subset_state)
 
 
 receiver = None
@@ -81,4 +100,5 @@ receiver = None
 @menubar_plugin("Open SAMP plugin")
 def samp_plugin(session, data_collection):
     global receiver
-    receiver = GlueSAMPReceiver(data_collection)
+    if receiver is None:
+        receiver = GlueSAMPReceiver(data_collection)
