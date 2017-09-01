@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+from __future__ import print_function, division, absolute_import
 
 from setuptools import setup, find_packages
 
@@ -23,6 +23,7 @@ setup(name='glue-samp',
       author='Thomas Robitaille',
       author_email='thomas.robitaille@gmail.com',
       packages = find_packages(),
-      package_data={},
+      package_data={'glue_samp': ['glue_samp_icon.png'],
+                    'glue_samp.qt': ['samp_options.ui']},
       entry_points=entry_points
     )
