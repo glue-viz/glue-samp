@@ -1,6 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
 import os
+import uuid
 import tempfile
 from fnmatch import fnmatch
 
@@ -94,13 +95,13 @@ class SAMPState(State):
                 table.write(filename, format='votable')
                 message["samp.mtype"] = "table.load.votable"
                 if 'samp-table-id' not in layer.meta:
-                    layer.meta['samp-table-id'] = layer.label
+                    layer.meta['samp-table-id'] = str(uuid.uuid4())
                 message["samp.params"]['table-id'] = layer.meta['samp-table-id']
             elif layer.ndim == 2:
                 fits_writer(filename, layer)
                 message["samp.mtype"] = "image.load.fits"
                 if 'samp-image-id' not in layer.meta:
-                    layer.meta['samp-image-id'] = layer.label
+                    layer.meta['samp-image-id'] = str(uuid.uuid4())
                 message["samp.params"]['image-id'] = layer.meta['samp-image-id']
             else:
                 return
