@@ -1,5 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
+import numpy as np
+
 from glue.logger import logger
 
 from glue.core.data_factories.astropy_table import (astropy_tabular_data_votable,
@@ -14,7 +16,8 @@ __all__ = ['SAMPReceiver']
 
 class SAMPReceiver(object):
 
-    def __init__(self, data_collection):
+    def __init__(self, state=None, data_collection=None):
+        self.state = state
         self.data_collection = data_collection
 
     def receive_message(self, private_key, sender_id, msg_id, mtype, params, extra):
@@ -45,7 +48,7 @@ class SAMPReceiver(object):
 
             self.data_collection.append(data)
 
-        elif mtype == 'image.load':
+        elif mtype.startswith('image.load'):
 
             if self.image_id_exists(params['image-id']):
                 logger.info('SAMP: image with image-id={0} has already '
@@ -65,7 +68,7 @@ class SAMPReceiver(object):
 
             self.data_collection.append(data)
 
-        elif mtype == 'table.highlight.row':
+        elif self.state.highlight_is_selection and mtype == 'table.highlight.row':
 
             data = self.data_from_table_id(params['table-id'])
             len(self.data_collection.subset_groups)
@@ -74,6 +77,22 @@ class SAMPReceiver(object):
 
             mode = EditSubsetMode()
             mode.update(self.data_collection, subset_state)
+
+        elif mtype == 'table.select.rowList':
+
+            data = self.data_from_table_id(params['table-id'])
+            len(self.data_collection.subset_groups)
+
+            rows = np.asarray(params['row-list'], dtype=int)
+
+            subset_state = ElementSubsetState(indices=rows, data=data)
+
+            mode = EditSubsetMode()
+            mode.update(self.data_collection, subset_state)
+
+        elif mtype == 'samp.hub.event.register' or mtype == 'samp.hub.event.unregister':
+
+            self.state.on_client_change()
 
     def table_id_exists(self, table_id):
         for data in self.data_collection:

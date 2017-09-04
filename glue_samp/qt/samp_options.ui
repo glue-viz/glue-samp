@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>378</width>
-    <height>101</height>
+    <width>432</width>
+    <height>271</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -52,7 +52,7 @@
      </item>
     </layout>
    </item>
-   <item row="4" column="1" colspan="2">
+   <item row="5" column="1" colspan="2">
     <widget class="QCheckBox" name="bool_highlight_is_selection">
      <property name="text">
       <string>Treat row highlighting in other applications as a selection</string>
@@ -63,6 +63,32 @@
     <widget class="QPushButton" name="button_stop_samp">
      <property name="text">
       <string>Stop SAMP</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1" colspan="2">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>To use the SAMP plugin, you need to start SAMP below, which will either connect to an existing hub if present, or start a new hub and connect to it. Glue will then receive SAMP messages related to loading data or creating subsets. If a subset is selected when a SAMP message to create a subset is received, the subset will be updated, otherwise a new one will be created. To send a dataset or subset to other SAMP clients, control click on a dataset or individual subset and go to the SAMP contextual menu.</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignJustify|Qt::AlignVCenter</set>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1" colspan="2">
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>SAMP supports messages that indicate if a row is highlighted in another application. By default this is not treated as a selection in glue, but you can change this behavior with the checkbox below: </string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignJustify|Qt::AlignVCenter</set>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
      </property>
     </widget>
    </item>

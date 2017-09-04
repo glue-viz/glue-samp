@@ -3,12 +3,20 @@ from __future__ import print_function, division, absolute_import
 import os
 
 from qtpy import QtWidgets
-from qtpy.QtCore import Signal
+from qtpy.QtCore import Qt, Signal
 
 from glue.utils.qt import load_ui
 from glue.external.echo.qt import autoconnect_callbacks_to_qt
 
 from astropy.samp import SAMPClientError
+
+MTYPES = ['table.load.votable',
+          'table.load.fits',
+          'table.highlight.row',
+          'table.select.rowList',
+          'image.load.fits',
+          'samp.hub.event.register',
+          'samp.hub.event.unregister']
 
 
 class SAMPOptions(QtWidgets.QWidget):
@@ -19,6 +27,8 @@ class SAMPOptions(QtWidgets.QWidget):
     def __init__(self, state=None, receiver=None, parent=None):
 
         super(SAMPOptions, self).__init__(parent=parent)
+
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
 
         self.ui = load_ui('samp_options.ui', self,
                           directory=os.path.dirname(__file__))
@@ -41,8 +51,9 @@ class SAMPOptions(QtWidgets.QWidget):
 
         if self.state.connected:
 
-            self.state.client.bind_receive_call("*", self._receive_call)
-            self.state.client.bind_receive_notification("*", self._receive_notification)
+            for mtype in MTYPES:
+                self.state.client.bind_receive_call(mtype, self._receive_call)
+                self.state.client.bind_receive_notification(mtype, self._receive_notification)
 
             self.call_received.connect(self.receiver.receive_message)
             self.notification_received.connect(self.receiver.receive_message)
@@ -50,8 +61,9 @@ class SAMPOptions(QtWidgets.QWidget):
         else:
 
             try:
-                self.state.client.unbind_receive_call("*")
-                self.state.client.unbind_receive_notification("*")
+                for mtype in MTYPES:
+                    self.state.client.unbind_receive_call(mtype)
+                    self.state.client.unbind_receive_notification(mtype)
             except (AttributeError, SAMPClientError):
                 pass
 

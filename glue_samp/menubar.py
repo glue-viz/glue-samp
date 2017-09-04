@@ -5,6 +5,7 @@ from glue.config import menubar_plugin
 from glue_samp.samp_state import SAMPState
 from glue_samp.samp_receiver import SAMPReceiver
 from glue_samp.qt.samp_options import SAMPOptions
+from glue_samp.qt.layer_actions import add_samp_layer_actions
 
 # Here we describe what we want the behavior to be under different scenarios.
 # First we consider the case of another application sending a SAMP message to
@@ -47,9 +48,20 @@ samp_widget = None
 
 @menubar_plugin("Open SAMP plugin")
 def samp_plugin(session, data_collection):
+
     global samp_widget
+
     if samp_widget is None:
+
         state = SAMPState()
-        receiver = SAMPReceiver(data_collection=data_collection)
+        receiver = SAMPReceiver(state=state, data_collection=data_collection)
         samp_widget = SAMPOptions(state=state, receiver=receiver)
+
+        # We now add actions to the data collection - however we don't use
+        # the @layer_action framework because we want to be able to add
+        # sub-menus. TODO: expand @layer_action framework to allow sub-menus.
+
+        add_samp_layer_actions(session, state)
+
     samp_widget.show()
+    samp_widget.raise_()
