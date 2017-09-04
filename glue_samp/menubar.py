@@ -1,6 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
 from glue.config import menubar_plugin
+from glue.utils.qt import get_qapp
 
 from glue_samp.samp_state import SAMPState
 from glue_samp.samp_receiver import SAMPReceiver
@@ -65,3 +66,6 @@ def samp_plugin(session, data_collection):
 
     samp_widget.show()
     samp_widget.raise_()
+
+    app = get_qapp()
+    app.aboutToQuit.connect(state.stop_samp)
