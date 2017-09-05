@@ -106,8 +106,10 @@ class SAMPClient(object):
 
         elif self.state.highlight_is_selection and mtype == 'table.highlight.row':
 
+            if not self.table_id_exists(params['table-id']):
+                return
+
             data = self.data_from_table_id(params['table-id'])
-            len(self.data_collection.subset_groups)
 
             subset_state = ElementSubsetState(indices=[params['row']], data=data)
 
@@ -116,8 +118,10 @@ class SAMPClient(object):
 
         elif mtype == 'table.select.rowList':
 
+            if not self.table_id_exists(params['table-id']):
+                return
+
             data = self.data_from_table_id(params['table-id'])
-            len(self.data_collection.subset_groups)
 
             rows = np.asarray(params['row-list'], dtype=int)
 
@@ -132,7 +136,7 @@ class SAMPClient(object):
 
     def table_id_exists(self, table_id):
         for data in self.data_collection:
-            if data.meta['samp-table-id'] == table_id:
+            if data.meta.get('samp-table-id', None) == table_id:
                 return True
         else:
             return False
@@ -153,7 +157,7 @@ class SAMPClient(object):
 
     def data_from_image_id(self, image_id):
         for data in self.data_collection:
-            if data.meta.get('samp-image-id', None) == image_id:
+            if data.meta['samp-image-id'] == image_id:
                 return data
         else:
             raise Exception("image {0} not found".format(image_id))
