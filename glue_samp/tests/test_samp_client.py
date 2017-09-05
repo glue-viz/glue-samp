@@ -18,8 +18,18 @@ from glue.core.edit_subset_mode import EditSubsetMode
 from ..samp_state import SAMPState
 from ..samp_client import SAMPClient
 
+class WaitMixin():
 
-class TestSAMPClientConnectSend():
+    def wait(self, exit_condition):
+        for iter in range(50):
+            if exit_condition(self):
+                break
+            time.sleep(0.1)
+        else:
+            raise Exception("Timed out while waiting for exit condition")
+
+
+class TestSAMPClientConnectSend(WaitMixin):
 
     def setup_method(self, method):
         self.state = SAMPState()
@@ -81,8 +91,7 @@ class TestSAMPClientConnectSend():
         data1d = Data(x=[1, 2, 3])
         self.client.send_data(layer=data1d, client=self.client_ext.get_public_id())
 
-        while len(receiver.call_args_list) == 2:
-            time.sleep(0.1)
+        self.wait(lambda x: len(receiver.call_args_list) == 3)
 
         args, kwargs = receiver.call_args_list[-1]
         assert args[3] == 'table.load.votable'
@@ -97,8 +106,7 @@ class TestSAMPClientConnectSend():
         data2d = Data(a=[[1, 2], [3, 4]])
         self.client.send_data(layer=data2d)
 
-        while len(receiver.call_args_list) == 0:
-            time.sleep(0.1)
+        self.wait(lambda x: len(receiver.call_args_list) == 1)
 
         args, kwargs = receiver.call_args_list[-1]
         assert args[3] == 'image.load.fits'
@@ -115,8 +123,7 @@ class TestSAMPClientConnectSend():
 
         self.client.send_data(layer=subset1d)
 
-        while len(receiver.call_args_list) == 0:
-            time.sleep(0.1)
+        self.wait(lambda x: len(receiver.call_args_list) == 1)
 
         args, kwargs = receiver.call_args_list[-1]
         assert args[3] == 'table.select.rowList'
@@ -125,7 +132,7 @@ class TestSAMPClientConnectSend():
         assert_equal(args[4]['row-list'], ['0', '2'])
 
 
-class TestSAMPClientReceive():
+class TestSAMPClientReceive(WaitMixin):
 
     def setup_method(self, method):
 
@@ -167,8 +174,7 @@ class TestSAMPClientReceive():
 
         self.client_ext.call_all('tag', message)
 
-        while len(self.data_collection) == 0:
-            time.sleep(0.1)
+        self.wait(lambda x: len(x.data_collection) == 1)
 
         assert_equal(self.data_collection[0]['a'], [1, 2, 3])
         assert self.data_collection[0].label == 'test_table'
@@ -188,8 +194,7 @@ class TestSAMPClientReceive():
 
         self.client_ext.call_all('tag', message)
 
-        while len(self.data_collection) == 0:
-            time.sleep(0.1)
+        self.wait(lambda x: len(x.data_collection) == 1)
 
         assert_equal(self.data_collection[0]['PRIMARY'], [[1, 2], [3, 4]])
         assert self.data_collection[0].label == 'test_image'
@@ -214,8 +219,7 @@ class TestSAMPClientReceive():
 
         self.client_ext.call_all('tag', message)
 
-        while len(d.subsets) == 0:
-            time.sleep(0.1)
+        self.wait(lambda x: len(d.subsets) == 1)
 
         assert len(d.subsets) == 1
         assert_equal(d.subsets[0].to_mask(), [0, 1, 0])
@@ -234,23 +238,19 @@ class TestSAMPClientReceive():
 
         self.client_ext.call_all('tag', message)
 
-        while len(d.subsets) == 0:
-            time.sleep(0.1)
+        self.wait(lambda x: len(d.subsets) == 1)
 
         assert len(d.subsets) == 1
         assert_equal(d.subsets[0].to_mask(), [1, 0, 1])
 
     def test_receive_client_change(self):
 
-        # Wait until all clients set up in setup_method have been recognized
-        while len(self.state.clients) != 2:
-            time.sleep(0.1)
+        self.wait(lambda x: len(x.state.clients) == 2)
 
         client = SAMPIntegratedClient()
         client.connect()
 
-        while len(self.state.clients) == 2:
-            time.sleep(0.1)
+        self.wait(lambda x: len(x.state.clients) == 3)
 
         assert len(self.state.clients) == 3
         client_id = client.get_public_id()
@@ -258,7 +258,6 @@ class TestSAMPClientReceive():
 
         client.disconnect()
 
-        while len(self.state.clients) == 3:
-            time.sleep(0.1)
+        self.wait(lambda x: len(x.state.clients) == 2)
 
         assert len(self.state.clients) == 2
