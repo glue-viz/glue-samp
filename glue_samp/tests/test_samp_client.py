@@ -9,7 +9,11 @@ from numpy.testing import assert_equal
 
 from astropy.io import fits
 from astropy.table import Table
-from astropy.samp import SAMPHubServer, SAMPIntegratedClient
+
+try:
+    from astropy.samp import SAMPHubServer, SAMPIntegratedClient
+except ImportError:
+    from astropy.vo.samp import SAMPHubServer, SAMPIntegratedClient
 
 from glue.core import Data, DataCollection
 from glue.core.subset import ElementSubsetState
@@ -17,6 +21,7 @@ from glue.core.edit_subset_mode import EditSubsetMode
 
 from ..samp_state import SAMPState
 from ..samp_client import SAMPClient
+
 
 class WaitMixin():
 

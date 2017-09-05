@@ -7,7 +7,10 @@ from fnmatch import fnmatch
 
 import numpy as np
 
-from astropy.samp import SAMPClientError, SAMPHubServer, SAMPIntegratedClient, SAMPHubError
+try:
+    from astropy.samp import SAMPClientError, SAMPHubServer, SAMPIntegratedClient, SAMPHubError
+except ImportError:
+    from astropy.vo.samp import SAMPClientError, SAMPHubServer, SAMPIntegratedClient, SAMPHubError
 
 from glue import __version__ as glue_version
 from glue.core import Data
