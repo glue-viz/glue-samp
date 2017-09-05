@@ -36,6 +36,11 @@ class TestSAMPClient():
         mode.edit_subset = []
         mode.data_collection = self.data_collection
 
+    def teardown_method(self, method):
+        self.client2.disconnect()
+        self.client.unregister()
+        self.state.stop_samp()
+
     @pytest.mark.parametrize('fmt', ['fits', 'votable'])
     def test_receive_table_votable(self, tmpdir, fmt):
 
@@ -125,3 +130,25 @@ class TestSAMPClient():
 
         assert len(d.subsets) == 1
         assert_equal(d.subsets[0].to_mask(), [1, 0, 1])
+
+    def test_receive_client_change(self):
+
+        assert len(self.state.clients) == 1
+
+        self.state.on_client_change()
+
+        assert len(self.state.clients) == 2
+
+        client = SAMPIntegratedClient()
+        client.connect()
+
+        while len(self.state.clients) == 2:
+            time.sleep(0.1)
+
+        assert len(self.state.clients) == 3
+        client_id = client.get_public_id()
+        assert (client_id, client_id) in self.state.clients
+
+        client.disconnect()
+
+        assert len(self.state.clients) == 2
