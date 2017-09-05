@@ -2,6 +2,8 @@ from __future__ import print_function, division, absolute_import
 
 import numpy as np
 
+from astropy.samp import SAMPClientError
+
 from glue.logger import logger
 
 from glue.core.data_factories.astropy_table import (astropy_tabular_data_votable,
@@ -11,14 +13,42 @@ from glue.core.data_factories.fits import fits_reader
 from glue.core.edit_subset_mode import EditSubsetMode
 from glue.core.subset import ElementSubsetState
 
-__all__ = ['SAMPReceiver']
+__all__ = ['SAMPClient']
+
+MTYPES = ['table.load.votable',
+          'table.load.fits',
+          'table.highlight.row',
+          'table.select.rowList',
+          'image.load.fits',
+          'samp.hub.event.register',
+          'samp.hub.event.unregister']
 
 
-class SAMPReceiver(object):
+class SAMPClient(object):
 
     def __init__(self, state=None, data_collection=None):
         self.state = state
         self.data_collection = data_collection
+
+    def register(self):
+        for mtype in MTYPES:
+            self.state.client.bind_receive_call(mtype, self.receive_call)
+            self.state.client.bind_receive_notification(mtype, self.receive_notification)
+
+    def unregister(self):
+        try:
+            for mtype in MTYPES:
+                self.state.client.unbind_receive_call(mtype)
+                self.state.client.unbind_receive_notification(mtype)
+        except (AttributeError, SAMPClientError):
+            pass
+
+    def receive_call(self, private_key, sender_id, msg_id, mtype, params, extra):
+        self.receive_message(private_key, sender_id, msg_id, mtype, params, extra)
+        self.state.client.reply(msg_id, {"samp.status": "samp.ok", "samp.result": {}})
+
+    def receive_notification(self, private_key, sender_id, msg_id, mtype, params, extra):
+        self.receive_message(private_key, sender_id, msg_id, mtype, params, extra)
 
     def receive_message(self, private_key, sender_id, msg_id, mtype, params, extra):
 
@@ -43,8 +73,11 @@ class SAMPReceiver(object):
                 logger.info('SAMP: unknown format {0}'.format(mtype.split('.')[-1]))
                 return
 
-            data.label = params['name']
-            data.meta['samp-table-id'] = params['table-id']
+            if 'name' in params:
+                data.label = params['name']
+
+            if 'table-id' in params:
+                data.meta['samp-table-id'] = params['table-id']
 
             self.data_collection.append(data)
 
@@ -58,13 +91,16 @@ class SAMPReceiver(object):
             logger.info('SAMP: loading image with image-id={0}'.format(params['image-id']))
 
             if mtype == 'image.load.fits':
-                data = fits_reader(params['url'])
+                data = fits_reader(params['url'])[0]
             else:
                 logger.info('SAMP: unknown format {0}'.format(mtype.split('.')[-1]))
                 return
 
-            data.label = params['name']
-            data.meta['samp-image-id'] = params['image-id']
+            if 'name' in params:
+                data.label = params['name']
+
+            if 'image-id' in params:
+                data.meta['samp-image-id'] = params['image-id']
 
             self.data_collection.append(data)
 
@@ -110,14 +146,14 @@ class SAMPReceiver(object):
 
     def image_id_exists(self, image_id):
         for data in self.data_collection:
-            if data.meta['samp-image-id'] == image_id:
+            if data.meta.get('samp-image-id', None) == image_id:
                 return True
         else:
             return False
 
     def data_from_image_id(self, image_id):
         for data in self.data_collection:
-            if data.meta['samp-image-id'] == image_id:
+            if data.meta.get('samp-image-id', None) == image_id:
                 return data
         else:
             raise Exception("image {0} not found".format(image_id))
