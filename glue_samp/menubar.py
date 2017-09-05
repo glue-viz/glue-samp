@@ -30,4 +30,4 @@ def samp_plugin(session, data_collection):
     samp_widget.raise_()
 
     app = get_qapp()
-    app.aboutToQuit.connect(state.stop_samp)
+    app.aboutToQuit.connect(samp_widget.stop_samp)

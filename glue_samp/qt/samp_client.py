@@ -5,21 +5,22 @@ import os
 from qtpy import QtWidgets
 from qtpy.QtCore import Qt, Signal
 
+from glue.utils import nonpartial
 from glue.utils.qt import load_ui
 from glue.external.echo.qt import autoconnect_callbacks_to_qt
 
 from glue_samp.samp_client import SAMPClient
 
 
-class QtSAMPClient(QtWidgets.QWidget, SAMPClient):
+class QtSAMPClient(SAMPClient, QtWidgets.QWidget):
 
     call_received = Signal(object, object, object, object, object, object)
     notification_received = Signal(object, object, object, object, object, object)
 
     def __init__(self, state=None, data_collection=None, parent=None):
 
-        QtWidgets.QWidget.__init__(self, parent=parent)
         SAMPClient.__init__(self, state=state, data_collection=data_collection)
+        QtWidgets.QWidget.__init__(self, parent=parent)
 
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
 
@@ -29,6 +30,9 @@ class QtSAMPClient(QtWidgets.QWidget, SAMPClient):
         self.state = state
 
         autoconnect_callbacks_to_qt(self.state, self.ui)
+
+        self.ui.button_start_samp.clicked.connect(nonpartial(self.start_samp))
+        self.ui.button_stop_samp.clicked.connect(nonpartial(self.stop_samp))
 
         self.state.add_callback('connected', self.on_connected_change)
         self.state.add_callback('status', self.on_status_change)
