@@ -3,7 +3,7 @@ from __future__ import print_function, division, absolute_import
 import os
 
 from qtpy import QtWidgets
-from qtpy.QtCore import Qt, Signal
+from qtpy.QtCore import Signal
 
 from glue.utils import nonpartial
 from glue.utils.qt import load_ui
@@ -21,8 +21,6 @@ class QtSAMPClient(SAMPClient, QtWidgets.QWidget):
 
         SAMPClient.__init__(self, state=state, data_collection=data_collection)
         QtWidgets.QWidget.__init__(self, parent=parent)
-
-        self.setWindowFlags(Qt.WindowStaysOnTopHint)
 
         self.ui = load_ui('samp_client.ui', self,
                           directory=os.path.dirname(__file__))
@@ -68,7 +66,7 @@ class QtSAMPClient(SAMPClient, QtWidgets.QWidget):
 
     def receive_call(self, private_key, sender_id, msg_id, mtype, params, extra):
         self.call_received.emit(private_key, sender_id, msg_id, mtype, params, extra)
-        self.state.client.reply(msg_id, {"samp.status": "samp.ok", "samp.result": {}})
+        self.client.reply(msg_id, {"samp.status": "samp.ok", "samp.result": {}})
 
     def receive_notification(self, private_key, sender_id, msg_id, mtype, params, extra):
         self.notification_received.emit(private_key, sender_id, msg_id, mtype, params, extra)

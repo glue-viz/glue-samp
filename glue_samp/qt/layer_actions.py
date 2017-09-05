@@ -11,9 +11,9 @@ class SAMPAction(LayerAction):
 
     _title = 'SAMP'
 
-    def __init__(self, samp_state, *args, **kwargs):
+    def __init__(self, client, *args, **kwargs):
         super(SAMPAction, self).__init__(*args, **kwargs)
-        self.samp_state = samp_state
+        self.client = client
         menu = SAMPMenu(self)
         self.setMenu(menu)
         self.update_enabled()
@@ -32,7 +32,7 @@ class SAMPAction(LayerAction):
         pass
 
     def _send_to_samp(self, client=None):
-        self.samp_state.send_data(layer=self.selected_layers()[0], client=client)
+        self.client.send_data(layer=self.selected_layers()[0], client=client)
 
 
 class SAMPMenu(QtWidgets.QMenu):
@@ -54,9 +54,9 @@ class SAMPMenu(QtWidgets.QMenu):
             action.setEnabled(False)
 
 
-def add_samp_layer_actions(session, samp_state):
+def add_samp_layer_actions(session, client):
     layer_tree_widget = session.application._layer_widget
-    action = SAMPAction(samp_state, layer_tree_widget)
+    action = SAMPAction(client, layer_tree_widget)
     menu = action.menu()
     layer_tree_widget.ui.layerTree.addAction(action)
-    samp_state.add_callback('clients', menu.update_clients)
+    client.state.add_callback('clients', menu.update_clients)

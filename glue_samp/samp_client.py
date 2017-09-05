@@ -265,7 +265,7 @@ class SAMPClient(object):
 
     def data_from_table_id(self, table_id):
         for data in self.data_collection:
-            if data.meta['samp-table-id'] == table_id:
+            if data.meta.get('samp-table-id', None) == table_id:
                 return data
         else:
             raise Exception("Table {0} not found".format(table_id))
@@ -279,7 +279,7 @@ class SAMPClient(object):
 
     def data_from_image_id(self, image_id):
         for data in self.data_collection:
-            if data.meta['samp-image-id'] == image_id:
+            if data.meta.get('samp-image-id', None) == image_id:
                 return data
         else:
             raise Exception("image {0} not found".format(image_id))
