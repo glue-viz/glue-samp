@@ -26,5 +26,5 @@ setup(name='glue-samp',
       package_data={'glue_samp': ['glue_samp_icon.png'],
                     'glue_samp.qt': ['samp_client.ui']},
       entry_points=entry_points,
-      install_requires=['astropy>=2.0', 'glue-core>=0.11']
+      install_requires=['astropy>=2.0', 'glue-core>=0.11', 'numpy', 'qtpy']
     )
