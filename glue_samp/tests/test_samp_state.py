@@ -57,7 +57,6 @@ class TestSAMPState():
         receiver = MagicMock()
 
         def receiver_func(private_key, sender_id, msg_id, mtype, params, extra):
-            print('receiver_func', mtype)
             receiver(private_key, sender_id, msg_id, mtype, params, extra)
 
         self.state.start_samp()
@@ -67,7 +66,7 @@ class TestSAMPState():
         self.client.bind_receive_notification('*', receiver_func)
 
         data1d = Data(x=[1, 2, 3])
-        self.state.send_data(layer=data1d)
+        self.state.send_data(layer=data1d, client=self.client.get_public_id())
 
         while len(receiver.call_args_list) == 2:
             time.sleep(0.1)
