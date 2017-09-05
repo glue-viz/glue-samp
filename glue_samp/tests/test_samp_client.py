@@ -2,21 +2,130 @@ import os
 import time
 
 import pytest
+from mock import MagicMock
+
 import numpy as np
 from numpy.testing import assert_equal
 
 from astropy.io import fits
 from astropy.table import Table
-from astropy.samp import SAMPIntegratedClient
+from astropy.samp import SAMPHubServer, SAMPIntegratedClient
 
 from glue.core import Data, DataCollection
+from glue.core.subset import ElementSubsetState
 from glue.core.edit_subset_mode import EditSubsetMode
 
 from ..samp_state import SAMPState
 from ..samp_client import SAMPClient
 
 
-class TestSAMPClient():
+class TestSAMPClientConnectSend():
+
+    def setup_method(self, method):
+        self.state = SAMPState()
+        self.data_collection = DataCollection()
+        self.client = SAMPClient(state=self.state,
+                                 data_collection=self.data_collection)
+        self.client_ext = SAMPIntegratedClient()
+
+    def teardown_method(self, method):
+        self.client_ext.disconnect()
+        self.client.stop_samp()
+
+    def test_start_builtin_hub(self):
+        assert not self.state.connected
+        assert self.state.status == 'Not connected to SAMP Hub'
+        self.client.start_samp()
+        assert self.state.connected
+        assert self.state.status == 'Connected to (glue) SAMP Hub'
+        self.client.stop_samp()
+        assert not self.state.connected
+        assert self.state.status == 'Not connected to SAMP Hub'
+
+    def test_start_external_hub(self):
+        assert not self.state.connected
+        assert self.state.status == 'Not connected to SAMP Hub'
+        self.hub = SAMPHubServer()
+        self.hub.start()
+        self.client.start_samp()
+        assert self.state.connected
+        assert self.state.status == 'Connected to SAMP Hub'
+        self.client.stop_samp()
+        assert not self.state.connected
+        assert self.state.status == 'Not connected to SAMP Hub'
+
+    def test_metadata(self):
+        self.client.start_samp()
+        self.client_ext.connect()
+        for client in self.client_ext.get_registered_clients():
+            if 'hub' not in client:
+                metadata = self.client_ext.get_metadata(client)
+                break
+        else:
+            raise Exception("Client not found")
+        assert metadata['samp.name'] == 'glueviz'
+
+    def test_send_data(self):
+
+        receiver = MagicMock()
+
+        def receiver_func(private_key, sender_id, msg_id, mtype, params, extra):
+            receiver(private_key, sender_id, msg_id, mtype, params, extra)
+
+        self.client.start_samp()
+
+        self.client_ext.connect()
+        self.client_ext.bind_receive_call('*', receiver_func)
+        self.client_ext.bind_receive_notification('*', receiver_func)
+
+        data1d = Data(x=[1, 2, 3])
+        self.client.send_data(layer=data1d, client=self.client_ext.get_public_id())
+
+        while len(receiver.call_args_list) == 2:
+            time.sleep(0.1)
+
+        args, kwargs = receiver.call_args_list[-1]
+        assert args[3] == 'table.load.votable'
+        assert 'url' in args[4]
+        assert 'table-id' in args[4]
+
+        t = Table.read(args[4]['url'], format='votable')
+        assert_equal(t['x'], [1, 2, 3])
+
+        receiver.reset_mock()
+
+        data2d = Data(a=[[1, 2], [3, 4]])
+        self.client.send_data(layer=data2d)
+
+        while len(receiver.call_args_list) == 0:
+            time.sleep(0.1)
+
+        args, kwargs = receiver.call_args_list[-1]
+        assert args[3] == 'image.load.fits'
+        assert 'url' in args[4]
+        assert 'image-id' in args[4]
+
+        hdu = fits.open(args[4]['url'], format='votable')[0]
+        assert_equal(hdu.data, [[1, 2], [3, 4]])
+
+        receiver.reset_mock()
+
+        subset1d = data1d.new_subset()
+        subset1d.subset_state = ElementSubsetState([0, 2])
+
+        self.client.send_data(layer=subset1d)
+
+        while len(receiver.call_args_list) == 0:
+            time.sleep(0.1)
+
+        args, kwargs = receiver.call_args_list[-1]
+        assert args[3] == 'table.select.rowList'
+        assert 'table-id' in args[4]
+
+        assert_equal(args[4]['row-list'], ['0', '2'])
+
+
+class TestSAMPClientReceive():
 
     def setup_method(self, method):
 
@@ -26,20 +135,20 @@ class TestSAMPClient():
 
         self.client = SAMPClient(state=self.state,
                                  data_collection=self.data_collection)
-        self.state.start_samp()
+        self.client.start_samp()
         self.client.register()
 
-        self.client2 = SAMPIntegratedClient()
-        self.client2.connect()
+        self.client_ext = SAMPIntegratedClient()
+        self.client_ext.connect()
 
         mode = EditSubsetMode()
         mode.edit_subset = []
         mode.data_collection = self.data_collection
 
     def teardown_method(self, method):
-        self.client2.disconnect()
+        self.client_ext.disconnect()
         self.client.unregister()
-        self.state.stop_samp()
+        self.client.stop_samp()
 
     @pytest.mark.parametrize('fmt', ['fits', 'votable'])
     def test_receive_table_votable(self, tmpdir, fmt):
@@ -56,7 +165,7 @@ class TestSAMPClient():
         message['samp.params']['table-id'] = 'testing'
         message['samp.params']['name'] = 'test_table'
 
-        self.client2.call_all('tag', message)
+        self.client_ext.call_all('tag', message)
 
         while len(self.data_collection) == 0:
             time.sleep(0.1)
@@ -77,7 +186,7 @@ class TestSAMPClient():
         message['samp.params']['image-id'] = 'testing'
         message['samp.params']['name'] = 'test_image'
 
-        self.client2.call_all('tag', message)
+        self.client_ext.call_all('tag', message)
 
         while len(self.data_collection) == 0:
             time.sleep(0.1)
@@ -97,13 +206,13 @@ class TestSAMPClient():
         message['samp.params']['table-id'] = 'table-123'
         message['samp.params']['row'] = 1
 
-        self.client2.call_all('tag', message)
+        self.client_ext.call_all('tag', message)
 
         assert len(d.subsets) == 0
 
         self.state.highlight_is_selection = True
 
-        self.client2.call_all('tag', message)
+        self.client_ext.call_all('tag', message)
 
         while len(d.subsets) == 0:
             time.sleep(0.1)
@@ -123,7 +232,7 @@ class TestSAMPClient():
         message['samp.params']['table-id'] = 'table-123'
         message['samp.params']['row-list'] = [0, 2]
 
-        self.client2.call_all('tag', message)
+        self.client_ext.call_all('tag', message)
 
         while len(d.subsets) == 0:
             time.sleep(0.1)
@@ -133,11 +242,9 @@ class TestSAMPClient():
 
     def test_receive_client_change(self):
 
-        assert len(self.state.clients) == 1
-
-        self.state.on_client_change()
-
-        assert len(self.state.clients) == 2
+        # Wait until all clients set up in setup_method have been recognized
+        while len(self.state.clients) != 2:
+            time.sleep(0.1)
 
         client = SAMPIntegratedClient()
         client.connect()
@@ -150,5 +257,8 @@ class TestSAMPClient():
         assert (client_id, client_id) in self.state.clients
 
         client.disconnect()
+
+        while len(self.state.clients) == 3:
+            time.sleep(0.1)
 
         assert len(self.state.clients) == 2
