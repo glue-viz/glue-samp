@@ -22,9 +22,9 @@ setup(name='glue-samp',
       url="https://github.com/glue-viz/glue-samp",
       author='Thomas Robitaille',
       author_email='thomas.robitaille@gmail.com',
-      packages = find_packages(),
+      packages=find_packages(),
       package_data={'glue_samp': ['glue_samp_icon.png'],
-                    'glue_samp.qt': ['samp_options.ui']},
+                    'glue_samp.qt': ['samp_client.ui']},
       entry_points=entry_points,
       install_requires=['astropy>=2.0', 'glue-core>=0.11']
     )

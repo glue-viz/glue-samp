@@ -4,8 +4,7 @@ from glue.config import menubar_plugin
 from glue.utils.qt import get_qapp
 
 from glue_samp.samp_state import SAMPState
-from glue_samp.samp_receiver import SAMPReceiver
-from glue_samp.qt.samp_options import SAMPOptions
+from glue_samp.qt.samp_client import QtSAMPClient
 from glue_samp.qt.layer_actions import add_samp_layer_actions
 
 # Here we describe what we want the behavior to be under different scenarios.
@@ -55,8 +54,7 @@ def samp_plugin(session, data_collection):
     if samp_widget is None:
 
         state = SAMPState()
-        receiver = SAMPReceiver(state=state, data_collection=data_collection)
-        samp_widget = SAMPOptions(state=state, receiver=receiver)
+        samp_widget = QtSAMPClient(state=state, data_collection=data_collection)
 
         # We now add actions to the data collection - however we don't use
         # the @layer_action framework because we want to be able to add

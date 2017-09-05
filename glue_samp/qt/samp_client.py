@@ -18,7 +18,7 @@ class QtSAMPClient(QtWidgets.QWidget, SAMPClient):
 
     def __init__(self, state=None, data_collection=None, parent=None):
 
-        QtWidgets.QtWidget.__init__(self, parent=parent)
+        QtWidgets.QWidget.__init__(self, parent=parent)
         SAMPClient.__init__(self, state=state, data_collection=data_collection)
 
         self.setWindowFlags(Qt.WindowStaysOnTopHint)
