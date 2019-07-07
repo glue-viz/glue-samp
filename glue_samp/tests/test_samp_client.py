@@ -15,9 +15,8 @@ try:
 except ImportError:
     from astropy.vo.samp import SAMPHubServer, SAMPIntegratedClient
 
-from glue.core import Data, DataCollection
+from glue.core import Data, DataCollection, Session
 from glue.core.subset import ElementSubsetState
-from glue.core.edit_subset_mode import EditSubsetMode
 
 from ..samp_state import SAMPState
 from ..samp_client import SAMPClient
@@ -38,9 +37,13 @@ class TestSAMPClientConnectSend(WaitMixin):
 
     def setup_method(self, method):
         self.state = SAMPState()
-        self.data_collection = DataCollection()
+
+        self.session = Session()
+        self.data_collection = self.session.data_collection
+
         self.client = SAMPClient(state=self.state,
-                                 data_collection=self.data_collection)
+                                 session=self.session)
+
         self.client_ext = SAMPIntegratedClient()
 
     def teardown_method(self, method):
@@ -143,19 +146,19 @@ class TestSAMPClientReceive(WaitMixin):
 
         self.state = SAMPState()
 
-        self.data_collection = DataCollection()
+        self.session = Session()
+        self.data_collection = self.session.data_collection
 
         self.client = SAMPClient(state=self.state,
-                                 data_collection=self.data_collection)
+                                 session=self.session)
         self.client.start_samp()
         self.client.register()
 
         self.client_ext = SAMPIntegratedClient()
         self.client_ext.connect()
 
-        mode = EditSubsetMode()
-        mode.edit_subset = []
-        mode.data_collection = self.data_collection
+        self.session.edit_subset_mode.edit_subset = []
+        self.session.edit_subset_mode.data_collection = self.data_collection
 
     def teardown_method(self, method):
         self.client_ext.disconnect()

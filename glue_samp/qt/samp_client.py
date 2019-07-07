@@ -17,9 +17,9 @@ class QtSAMPClient(SAMPClient, QtWidgets.QWidget):
     call_received = Signal(object, object, object, object, object, object)
     notification_received = Signal(object, object, object, object, object, object)
 
-    def __init__(self, state=None, data_collection=None, parent=None):
+    def __init__(self, state=None, session=None, parent=None):
 
-        SAMPClient.__init__(self, state=state, data_collection=data_collection)
+        SAMPClient.__init__(self, state=state, session=session)
         QtWidgets.QWidget.__init__(self, parent=parent)
 
         self.ui = load_ui('samp_client.ui', self,
