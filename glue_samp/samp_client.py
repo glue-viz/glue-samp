@@ -20,7 +20,6 @@ from glue.core.data_factories.astropy_table import (astropy_tabular_data_votable
 from glue.core.data_factories.fits import fits_reader
 from glue.core.data_exporters.gridded_fits import fits_writer
 from glue.core.data_exporters.astropy_table import data_to_astropy_table
-from glue.core.edit_subset_mode import EditSubsetMode
 from glue.core.subset import ElementSubsetState
 from glue.external.echo import delay_callback
 
@@ -40,9 +39,10 @@ MTYPES = ['table.load.votable',
 
 class SAMPClient(object):
 
-    def __init__(self, state=None, data_collection=None):
+    def __init__(self, state=None, session=None):
         self.state = state
-        self.data_collection = data_collection
+        self.session = session
+        self.data_collection = session.data_collection
         self.hub = SAMPHubServer()
         self.client = SAMPIntegratedClient()
         self.state.add_callback('connected', self.on_connected)
@@ -235,8 +235,7 @@ class SAMPClient(object):
 
             subset_state = ElementSubsetState(indices=[params['row']], data=data)
 
-            mode = EditSubsetMode()
-            mode.update(self.data_collection, subset_state)
+            self.session.edit_subset_mode.update(self.data_collection, subset_state)
 
         elif mtype == 'table.select.rowList':
 
@@ -249,8 +248,7 @@ class SAMPClient(object):
 
             subset_state = ElementSubsetState(indices=rows, data=data)
 
-            mode = EditSubsetMode()
-            mode.update(self.data_collection, subset_state)
+            self.session.edit_subset_mode.update(self.data_collection, subset_state)
 
         elif mtype == 'samp.hub.event.register' or mtype == 'samp.hub.event.unregister':
 

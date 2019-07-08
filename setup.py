@@ -1,29 +1,16 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
-from __future__ import print_function, division, absolute_import
+import sys
+from distutils.version import LooseVersion
 
-from setuptools import setup, find_packages
+try:
+    import setuptools
+    assert LooseVersion(setuptools.__version__) >= LooseVersion('30.3')
+except (ImportError, AssertionError):
+    sys.stderr.write("ERROR: setuptools 30.3 or later is required\n")
+    sys.exit(1)
 
-entry_points = """
-[glue.plugins]
-samp=glue_samp:setup
-"""
+from setuptools import setup
 
-with open('README.rst') as infile:
-    LONG_DESCRIPTION = infile.read()
-
-with open('glue_samp/version.py') as infile:
-    exec(infile.read())
-
-setup(name='glue-samp',
-      version=__version__,  # noqa
-      description='A SAMP plugin for glue',
-      long_description=LONG_DESCRIPTION,
-      url="https://github.com/glue-viz/glue-samp",
-      author='Thomas Robitaille',
-      author_email='thomas.robitaille@gmail.com',
-      packages=find_packages(),
-      package_data={'glue_samp': ['glue_samp_icon.png'],
-                    'glue_samp.qt': ['samp_client.ui']},
-      entry_points=entry_points,
-      install_requires=['astropy', 'glue-core>=0.11', 'numpy', 'qtpy'])
+setup(use_scm_version=True)
