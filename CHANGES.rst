@@ -1,7 +1,9 @@
-0.2 (unreleased)
+0.2 (2019-07-08)
 ----------------
 
-- No changes yet
+- Updated package layout to use setup.cfg, setuptools_scm, and tox. [#4]
+
+- Fixed compatibility with latest version of glue. [#4]
 
 0.1 (2017-09-05)
 ----------------
